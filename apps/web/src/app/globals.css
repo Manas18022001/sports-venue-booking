@@ -1,0 +1,39 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #173c30;
+  background: #f7f9f5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  width: min(100% - 3rem, 60rem);
+  margin-inline: auto;
+  padding-block: clamp(4rem, 14vh, 10rem);
+}
+
+.brand {
+  margin-bottom: 3rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+h1 {
+  max-width: 12ch;
+  margin-block: 0 1.5rem;
+  font-size: clamp(3rem, 8vw, 6rem);
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+}
+
+p {
+  font-size: 1.125rem;
+  line-height: 1.6;
+}

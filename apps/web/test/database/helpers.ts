@@ -14,6 +14,8 @@ if (!decodeURIComponent(new URL(connectionString).pathname).toLowerCase().includ
   throw new Error("TEST_DATABASE_URL must name a dedicated database containing 'test'.");
 }
 
+export const testDatabaseUrl = connectionString;
+
 export const schema = `turfit_test_${randomUUID().replaceAll("-", "")}`;
 const schemaIdentifier = `"${schema}"`;
 export let db: pg.Client;

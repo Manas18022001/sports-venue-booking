@@ -4,21 +4,24 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "apps/api"
+    "apps/web"
   ],
   "engines": {
     "node": ">=24.11.0 <25",
     "npm": ">=11 <13"
   },
   "scripts": {
-    "db:format": "npm run db:format --workspace @turfit/api",
-    "db:validate": "npm run db:validate --workspace @turfit/api",
-    "db:generate": "npm run db:generate --workspace @turfit/api",
-    "db:migrate:dev": "npm run db:migrate:dev --workspace @turfit/api --",
-    "db:migrate:deploy": "npm run db:migrate:deploy --workspace @turfit/api",
-    "db:migrate:status": "npm run db:migrate:status --workspace @turfit/api",
-    "typecheck": "npm run typecheck --workspace @turfit/api",
-    "test:db": "npm run test:db --workspace @turfit/api"
+    "dev": "npm run dev --workspace @turfit/web",
+    "build": "npm run build --workspace @turfit/web",
+    "start": "npm run start --workspace @turfit/web",
+    "db:format": "npm run db:format --workspace @turfit/web",
+    "db:validate": "npm run db:validate --workspace @turfit/web",
+    "db:generate": "npm run db:generate --workspace @turfit/web",
+    "db:migrate:dev": "npm run db:migrate:dev --workspace @turfit/web --",
+    "db:migrate:deploy": "npm run db:migrate:deploy --workspace @turfit/web",
+    "db:migrate:status": "npm run db:migrate:status --workspace @turfit/web",
+    "typecheck": "npm run typecheck --workspace @turfit/web",
+    "test:db": "npm run test:db --workspace @turfit/web"
   },
   "allowScripts": {
     "prisma@7.10.1": true,

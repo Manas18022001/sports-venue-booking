@@ -1,7 +1,30 @@
-# Sports venue booking
+# Turfit
 
-Turfit full-stack assessment. This first milestone implements the PostgreSQL data
-model, migrations, a typed database client, and database integration tests.
+Sports venue booking built with Next.js App Router, TypeScript, Prisma, and
+PostgreSQL. The current milestone integrates the existing database layer into
+the Next.js application, with a minimal home page and database integration tests.
+
+## Application structure
+
+The full-stack application lives in `apps/web`, using the workspace name
+`@turfit/web`. The former `apps/api` database code has moved here; its schema and
+applied migration contents are unchanged.
+
+- `src/app`: Next.js pages and layouts; Route Handlers will be added here later.
+- `src/database/client.ts`: testable database client factory for server code and CLI tools.
+- `src/server/database.ts`: server-only, lazy database access with one client per
+  process, reused across development hot reloads.
+- `prisma`: data models and the existing SQL migration history.
+- `test/database`: the existing PostgreSQL constraint and concurrency tests.
+
+The database test command also checks that the server-only client is reused and
+can query PostgreSQL. It enables Node's `react-server` condition so the
+`server-only` marker works outside the Next.js test runtime.
+
+Server Components and future Route Handlers should import `getDatabase()` from
+`src/server/database.ts`. Database queries execute in the Node.js runtime.
+Client Components must never import database code. Do not disconnect the shared
+client after individual HTTP requests.
 
 ## Requirements
 
@@ -26,7 +49,23 @@ npm run db:generate
 npm run db:migrate:deploy
 npm run typecheck
 npm run test:db
+npm run dev
 ```
+
+Open [localhost:3000](http://localhost:3000). Both Next.js and Prisma load environment
+files from the repository root. Environment variables supplied by the host take
+precedence. The home page does not access the database during build or requests.
+
+For a local production build:
+
+```sh
+npm run build
+npm run start
+```
+
+The build generates the Prisma client before compiling Next.js. It does not
+apply migrations; deploy migrations as a separate release step before serving
+application code that depends on them.
 
 `TEST_DATABASE_URL` must point to a dedicated database whose name contains
 `test`. Tests create a uniquely named schema and remove only that schema after
@@ -37,6 +76,9 @@ allow the test account to create schemas and install `btree_gist` if absent.
 
 | Command | Purpose |
 | --- | --- |
+| `npm run dev` | Start the Next.js development server. |
+| `npm run build` | Generate Prisma Client and build Next.js for production. |
+| `npm run start` | Serve the completed production build. |
 | `npm run db:format` | Format the Prisma models. |
 | `npm run db:validate` | Validate the Prisma schema. |
 | `npm run db:generate` | Generate the ignored, typed database client. |
@@ -52,8 +94,10 @@ Inspect each generated migration and preserve the SQL constraints and triggers.
 ## Read the model
 
 Start with [the model guide](docs/data-model.md), then
-[`schema.prisma`](apps/api/prisma/schema.prisma), followed by the SQL migrations.
-Database tests live in `apps/api/test/database`.
+[`schema.prisma`](apps/web/prisma/schema.prisma), followed by the SQL migrations.
+Database tests live in `apps/web/test/database`.
 
-The HTTP API, JWT flows, middleware, UI, and deployment are subsequent milestones.
-The database layer alone does not implement authentication or the cancellation policy.
+Validated server configuration and shared API infrastructure are the next two
+separate checkpoints. Authentication, booking services, and the product UI follow
+those. The database layer alone does not implement authentication or the
+12-hour cancellation policy.

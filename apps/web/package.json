@@ -1,27 +1,37 @@
 {
-  "name": "@turfit/api",
+  "name": "@turfit/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
     "db:format": "prisma format",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev --create-only",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
-    "typecheck": "tsc --noEmit",
-    "test:db": "node --import tsx --test --test-concurrency=1 test/database/*.test.ts"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:db": "node --conditions=react-server --import tsx --test --test-concurrency=1 test/database/*.test.ts"
   },
   "dependencies": {
+    "@next/env": "16.4.3",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "dotenv": "17.4.2",
-    "pg": "8.23.1"
+    "next": "16.4.3",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
     "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "prisma": "7.10.1",
     "tsx": "4.23.15",
     "typescript": "5.9.3"

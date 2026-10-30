@@ -1,6 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../generated/prisma/client.js";
-import type { Prisma } from "../generated/prisma/client.js";
+import { PrismaClient } from "../generated/prisma/client";
+import type { Prisma } from "../generated/prisma/client";
 
 // The application owns connection lifetime. Importing this module opens no pool.
 export function createDatabaseClient(connectionString: string) {

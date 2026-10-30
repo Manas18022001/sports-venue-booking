@@ -4,7 +4,11 @@ coverage/
 .env
 .env.*
 !.env.example
-apps/api/src/generated/
+apps/web/src/generated/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
 .local/
 *.log
 .DS_Store
