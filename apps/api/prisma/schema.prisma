@@ -1,0 +1,198 @@
+// The SQL migrations also define exclusion constraints, partial unique indexes,
+// CHECK constraints, and triggers. Always use migrations, never `prisma db push`.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+}
+
+enum BookingItemStatus {
+  RESERVED
+  CANCELLED
+}
+
+enum CancellationSource {
+  CUSTOMER
+  ADMIN
+}
+
+model User {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String              @unique(map: "users_email_key") @db.VarChar(254)
+  name            String              @db.VarChar(120)
+  passwordHash    String              @map("password_hash") @db.Text
+  role            UserRole            @default(CUSTOMER)
+  isActive        Boolean             @default(true) @map("is_active")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions        AuthSession[]
+  bookings        Booking[]
+  cancellations   BookingItem[]       @relation("CancellationActor")
+  idempotencyKeys IdempotencyRecord[]
+
+  @@map("users")
+}
+
+// The session ID is included in access JWTs, enabling immediate revocation.
+model AuthSession {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  expiresAt     DateTime       @map("expires_at") @db.Timestamptz(3)
+  revokedAt     DateTime?      @map("revoked_at") @db.Timestamptz(3)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  refreshTokens RefreshToken[]
+
+  @@index([userId, expiresAt], map: "auth_sessions_user_expiry_idx")
+  @@index([expiresAt], map: "auth_sessions_expiry_idx")
+  @@map("auth_sessions")
+}
+
+// Store SHA-256 hashes of high-entropy tokens, never raw refresh tokens.
+// Consumed rows remain available for replay detection within the session family.
+model RefreshToken {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId  String      @map("session_id") @db.Uuid
+  tokenHash  String      @unique(map: "refresh_tokens_hash_key") @map("token_hash") @db.Char(64)
+  expiresAt  DateTime    @map("expires_at") @db.Timestamptz(3)
+  consumedAt DateTime?   @map("consumed_at") @db.Timestamptz(3)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  session    AuthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([sessionId], map: "refresh_tokens_session_idx")
+  @@map("refresh_tokens")
+}
+
+model Venue {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @db.VarChar(160)
+  description String    @default("") @db.Text
+  address     String    @db.VarChar(500)
+  city        String    @db.VarChar(100)
+  timezone    String    @default("Asia/Kolkata") @db.VarChar(64)
+  currency    String    @default("INR") @db.Char(3)
+  imageUrl    String?   @map("image_url") @db.VarChar(2048)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  courts      Court[]
+  bookings    Booking[]
+
+  @@index([isActive, city], map: "venues_discovery_idx")
+  @@map("venues")
+}
+
+model Court {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId   String   @map("venue_id") @db.Uuid
+  name      String   @db.VarChar(120)
+  sport     String   @db.VarChar(60)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  slots     Slot[]
+
+  // Composite keys let child FKs enforce the single-venue booking invariant.
+  @@unique([id, venueId], map: "courts_id_venue_key")
+  @@unique([venueId, name], map: "courts_venue_name_key")
+  @@index([venueId, isActive, sport], map: "courts_venue_sport_idx")
+  @@map("courts")
+}
+
+model Slot {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  venueId    String        @map("venue_id") @db.Uuid
+  courtId    String        @map("court_id") @db.Uuid
+  startsAt   DateTime      @map("starts_at") @db.Timestamptz(3)
+  endsAt     DateTime      @map("ends_at") @db.Timestamptz(3)
+  priceMinor Int           @map("price_minor")
+  isBlocked  Boolean       @default(false) @map("is_blocked")
+  version    Int           @default(1)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  court      Court         @relation(fields: [courtId, venueId], references: [id, venueId], onDelete: Restrict, onUpdate: Restrict)
+  items      BookingItem[]
+
+  // SQL also excludes overlapping [starts_at, ends_at) intervals per court.
+  @@unique([id, venueId], map: "slots_id_venue_key")
+  @@index([venueId, startsAt, courtId], map: "slots_availability_idx")
+  @@map("slots")
+}
+
+model Booking {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reference       String              @unique(map: "bookings_reference_key") @db.VarChar(40)
+  userId          String              @map("user_id") @db.Uuid
+  venueId         String              @map("venue_id") @db.Uuid
+  customerName    String              @map("customer_name") @db.VarChar(120)
+  customerEmail   String              @map("customer_email") @db.VarChar(254)
+  currency        String              @default("INR") @db.Char(3)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  user            User                @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  venue           Venue               @relation(fields: [venueId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  items           BookingItem[]
+  idempotencyKeys IdempotencyRecord[]
+
+  // Totals and aggregate status are derived from items, avoiding stale copies.
+  @@unique([id, venueId], map: "bookings_id_venue_key")
+  @@index([userId, createdAt, id], map: "bookings_customer_history_idx")
+  @@index([venueId, createdAt, id], map: "bookings_admin_history_idx")
+  @@map("bookings")
+}
+
+model BookingItem {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookingId          String              @map("booking_id") @db.Uuid
+  slotId             String              @map("slot_id") @db.Uuid
+  venueId            String              @map("venue_id") @db.Uuid
+  courtName          String              @map("court_name") @db.VarChar(120)
+  sport              String              @db.VarChar(60)
+  startsAt           DateTime            @map("starts_at") @db.Timestamptz(3)
+  endsAt             DateTime            @map("ends_at") @db.Timestamptz(3)
+  priceMinor         Int                 @map("price_minor")
+  status             BookingItemStatus   @default(RESERVED)
+  cancelledAt        DateTime?           @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById      String?             @map("cancelled_by_id") @db.Uuid
+  cancellationSource CancellationSource? @map("cancellation_source")
+  cancellationReason String?             @map("cancellation_reason") @db.VarChar(1000)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  booking            Booking             @relation(fields: [bookingId, venueId], references: [id, venueId], onDelete: Restrict, onUpdate: Restrict)
+  slot               Slot                @relation(fields: [slotId, venueId], references: [id, venueId], onDelete: Restrict, onUpdate: Restrict)
+  cancelledBy        User?               @relation("CancellationActor", fields: [cancelledById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  // SQL enforces one RESERVED item per slot while retaining cancelled history.
+  @@unique([bookingId, slotId], map: "booking_items_booking_slot_key")
+  @@index([slotId], map: "booking_items_slot_history_idx")
+  @@index([bookingId, status], map: "booking_items_booking_status_idx")
+  @@index([cancelledById], map: "booking_items_cancellation_actor_idx")
+  @@map("booking_items")
+}
+
+// Written in the same transaction as the successful operation; never preclaimed
+// in a separate committed transaction. The key is not an authentication token.
+model IdempotencyRecord {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  operation      String   @db.VarChar(64)
+  key            String   @db.Uuid
+  requestHash    String   @map("request_hash") @db.Char(64)
+  responseStatus Int      @map("response_status")
+  responseBody   Json     @map("response_body") @db.JsonB
+  bookingId      String?  @map("booking_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  booking        Booking? @relation(fields: [bookingId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([userId, operation, key], map: "idempotency_records_scope_key")
+  @@index([bookingId], map: "idempotency_records_booking_idx")
+  @@map("idempotency_records")
+}
