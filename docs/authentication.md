@@ -3,7 +3,8 @@
 Turfit uses short-lived access JWTs and database-backed sessions with rotating
 refresh credentials. Both credentials travel in HttpOnly cookies. Browser
 JavaScript receives the public user and a session-bound CSRF token, never the
-access or refresh credential. No browser authentication UI has been added yet.
+access or refresh credential. The browser flow is documented in
+[the frontend walkthrough](frontend.md).
 
 ## 1. Registration and password storage
 
@@ -196,7 +197,7 @@ only the existing safe request metadata; passwords, cookies, tokens, and request
 bodies are excluded.
 
 Booking, availability, and admin management APIs now use these guards. Browser
-auth forms and the responsive product UI remain the next work. Password
+auth forms and the responsive product UI are implemented. Password
 reset, email verification, MFA, and device-management screens are outside this
 assessment's agreed scope. Do not represent this milestone as an implementation
 of those account lifecycle features.

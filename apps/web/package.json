@@ -16,7 +16,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test:unit": "node --conditions=react-server --import tsx --test test/unit/*.test.ts",
     "test:db": "node --conditions=react-server --import tsx --test --test-concurrency=1 test/database/*.test.ts",
-    "auth:create-admin": "node --conditions=react-server --import tsx scripts/create-admin.ts"
+    "auth:create-admin": "node --conditions=react-server --import tsx scripts/create-admin.ts",
+    "db:seed": "node --conditions=react-server --import tsx scripts/seed-demo.ts"
   },
   "dependencies": {
     "@js-temporal/polyfill": "0.5.1",

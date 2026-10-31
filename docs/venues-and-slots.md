@@ -233,5 +233,5 @@ npm run build
 ```
 
 Atomic multi-slot booking and customer/admin cancellation are now implemented;
-see [booking and cancellation](bookings.md). The responsive UI is the next product
-checkpoint.
+see [booking and cancellation](bookings.md). The responsive UI is also implemented;
+see [the frontend walkthrough](frontend.md).

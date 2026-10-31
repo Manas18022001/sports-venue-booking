@@ -207,5 +207,6 @@ npm run typecheck
 npm run build
 ```
 
-No schema/migration change is needed. The next product work is the responsive
-customer/admin frontend and deployment of the complete assessment.
+No schema/migration change is needed. The responsive customer/admin frontend is
+implemented; see [the frontend walkthrough](frontend.md). Deployment is the next
+release step.

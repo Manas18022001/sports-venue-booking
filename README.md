@@ -4,8 +4,8 @@ Sports venue booking built with Next.js App Router, TypeScript, Prisma, and
 PostgreSQL. The current milestone integrates the existing database layer into
 the Next.js application, with validated server configuration, shared API
 infrastructure, cookie-based JWT authentication, public availability, admin slot
-management, atomic booking and cancellation APIs, a minimal home page, and
-database integration tests.
+management, atomic booking and cancellation APIs, responsive customer/admin
+interfaces, and database integration tests.
 
 ## Application structure
 
@@ -18,6 +18,8 @@ applied migration contents are unchanged.
 - `src/server/auth`: password hashing, JWTs, session rotation, CSRF, guards, and shared rate limits.
 - `src/server/venues`: public discovery/availability and admin venue, court, and slot management.
 - `src/server/bookings`: atomic checkout, booking history, cancellation, and idempotent retries.
+- `src/components`: responsive customer/admin screens and shared UI.
+- `src/client`: typed API calls, session recovery, selection persistence, and formatting.
 - `src/database/client.ts`: testable database client factory for server code and CLI tools.
 - `src/server/database.ts`: server-only, lazy database access with one client per
   process, reused across development hot reloads.
@@ -91,6 +93,7 @@ allow the test account to create schemas and install `btree_gist` if absent.
 | `npm run db:format` | Format the Prisma models. |
 | `npm run db:validate` | Validate the Prisma schema. |
 | `npm run db:generate` | Generate the ignored, typed database client. |
+| `npm run db:seed` | Optionally add fictional demo venues and seven days of development slots; never creates accounts. |
 | `npm run db:migrate:dev -- --name change_name` | Draft a migration for review. |
 | `npm run db:migrate:deploy` | Apply checked-in migrations. |
 | `npm run db:migrate:status` | Inspect migration status. |
@@ -124,4 +127,6 @@ walkthrough. See [venues and slots](docs/venues-and-slots.md) for public discove
 venue-local dates, admin endpoints, preview/confirmation, unused-time
 acknowledgement, and slot version checks. See [booking and cancellation](docs/bookings.md)
 for checkout correctness, idempotency keys, booking history, the 12-hour customer
-cutoff, and admin overrides. The responsive product UI and deployment follow.
+cutoff, and admin overrides. See [the frontend walkthrough](docs/frontend.md) for
+the customer/admin pages, session handling, checkout recovery, demo data, and
+visual design. Deployment configuration is the next release step.
