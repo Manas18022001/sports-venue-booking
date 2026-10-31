@@ -3,8 +3,8 @@
 Sports venue booking built with Next.js App Router, TypeScript, Prisma, and
 PostgreSQL. The current milestone integrates the existing database layer into
 the Next.js application, with validated server configuration, shared API
-infrastructure, cookie-based JWT authentication, a minimal home page, and
-database integration tests.
+infrastructure, cookie-based JWT authentication, public availability and admin
+slot-management APIs, a minimal home page, and database integration tests.
 
 ## Application structure
 
@@ -15,6 +15,7 @@ applied migration contents are unchanged.
 - `src/app`: Next.js pages/layouts and the auth/health/fallback Route Handlers.
 - `src/server/api`: shared request handling, validation, safe errors, and logging.
 - `src/server/auth`: password hashing, JWTs, session rotation, CSRF, guards, and shared rate limits.
+- `src/server/venues`: public discovery/availability and admin venue, court, and slot management.
 - `src/database/client.ts`: testable database client factory for server code and CLI tools.
 - `src/server/database.ts`: server-only, lazy database access with one client per
   process, reused across development hot reloads.
@@ -117,5 +118,7 @@ for the exact browser origin before using write endpoints.
 
 See [authentication](docs/authentication.md) for the endpoints, token/session
 lifecycle, cookie and CSRF policy, rate limits, admin provisioning, and code
-walkthrough. Booking services, the 12-hour cancellation policy, and the product
-UI follow.
+walkthrough. See [venues and slots](docs/venues-and-slots.md) for public discovery,
+venue-local dates, admin endpoints, preview/confirmation, unused-time
+acknowledgement, and slot version checks. Booking services, the 12-hour
+cancellation policy, and the product UI follow.
