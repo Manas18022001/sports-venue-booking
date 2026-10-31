@@ -77,7 +77,7 @@ is no extra sports catalog, payment, review, or analytics subsystem.
 Migration SQL is authoritative for PostgreSQL-specific protections; Prisma
 models document those additions but do not express all of them.
 
-## Transaction protocol for the next milestone
+## Implemented booking transaction protocol
 
 1. Authenticate and validate the selection; reject duplicate slot IDs.
 2. Begin a Read Committed transaction and coordinate the scoped idempotency key.
@@ -99,10 +99,11 @@ availability is future + open + active venue/court + no reserved item.
 Authentication and venue services now implement JWT verification, role/ownership
 guards, venue/court activity checks, normalization, timezone validation, bounded
 slot generation, atomic generation batches, and versioned slot edits.
-The booking/cancellation milestone will add the 12-hour cutoff using server time
-after locks are acquired, booking price/version consent, idempotency replay and
-payload comparison. It will also ensure that a successful booking has at least
-one item. A foreign key alone cannot enforce that a parent has children.
+Booking/cancellation now enforces the 12-hour cutoff using server time after
+locks are acquired, booking price/version consent, idempotency replay and payload
+comparison. It also ensures a successful booking has at least one item. A foreign
+key alone cannot enforce that a parent has children. See [booking and cancellation](bookings.md)
+for actor locks, partial cancellation coordination, and endpoint contracts.
 
 Slot versions change when court, time, price, or block state changes. Confirmation
 must compare the version from the review; a mismatch requires fresh consent.

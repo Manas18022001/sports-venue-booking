@@ -195,7 +195,8 @@ PostgreSQL tests create and remove their own isolated schemas. Auth logs retain
 only the existing safe request metadata; passwords, cookies, tokens, and request
 bodies are excluded.
 
-Booking endpoints and browser auth forms remain the next product work. Password
+Booking, availability, and admin management APIs now use these guards. Browser
+auth forms and the responsive product UI remain the next work. Password
 reset, email verification, MFA, and device-management screens are outside this
 assessment's agreed scope. Do not represent this milestone as an implementation
 of those account lifecycle features.

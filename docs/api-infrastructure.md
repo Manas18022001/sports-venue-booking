@@ -3,7 +3,8 @@
 This checkpoint adds reusable HTTP handling, bounded JSON input, validation,
 metadata-only structured logs, response headers, and a public liveness endpoint.
 Authentication builds on this layer; its implementation is described in the
-[authentication guide](authentication.md). Booking business operations follow.
+[authentication guide](authentication.md). [Booking and cancellation](bookings.md)
+also use the shared request lifecycle.
 
 ## Structure
 

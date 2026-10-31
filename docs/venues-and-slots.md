@@ -232,6 +232,6 @@ npm run typecheck
 npm run build
 ```
 
-The next backend checkpoint is atomic multi-slot booking with idempotency,
-followed by customer/admin cancellation rules. The UI will consume these APIs
-after those business operations are ready.
+Atomic multi-slot booking and customer/admin cancellation are now implemented;
+see [booking and cancellation](bookings.md). The responsive UI is the next product
+checkpoint.

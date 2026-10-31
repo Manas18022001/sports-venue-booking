@@ -5,6 +5,7 @@ import type { ServerConfig } from "../config/schema";
 import { ApiError } from "../api/errors";
 import { validate } from "../api/validation";
 import { databaseNow, translateWriteError } from "./database";
+import { writeTransaction } from "../database-operations";
 import { generationPlan, signPreview, verifyPreview } from "./generation";
 import {
   courtCreateSchema, courtUpdateSchema, generationConfirmSchema, generationSchema,
@@ -18,16 +19,8 @@ function definedFields<T extends object>(value: T) {
 }
 
 export function createVenueAdminService(db: DatabaseClient, config: ServerConfig) {
-  const transactionOptions = { maxWait: 5000, timeout: 10_000 };
-
   function write<T>(action: (tx: TransactionClient) => Promise<T>) {
-    return db.$transaction(async tx => {
-      // Server-side limits also release locks when a PostgreSQL query is waiting;
-      // a JavaScript transaction deadline alone does not cancel a blocked query.
-      await tx.$executeRaw`SET LOCAL lock_timeout = '3s'`;
-      await tx.$executeRaw`SET LOCAL statement_timeout = '8s'`;
-      return action(tx);
-    }, transactionOptions);
+    return writeTransaction(db, action);
   }
 
   async function createVenue(input: unknown) {

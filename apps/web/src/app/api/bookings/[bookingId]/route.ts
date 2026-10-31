@@ -1,0 +1,6 @@
+import { bookingHandler } from "@/server/bookings/controller";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+const handler = bookingHandler("booking", false);
+export { handler as GET, handler as HEAD, handler as POST, handler as PUT, handler as PATCH, handler as DELETE, handler as OPTIONS };
