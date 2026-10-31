@@ -45,12 +45,7 @@ client after individual HTTP requests.
 Prisma is pinned to **7.10.1**. At implementation time Prisma 8's `latest` tag is
 a release candidate with a different migration API; do not upgrade it implicitly.
 
-## Setup
 
-1. Copy `.env.example` to `.env`, replace the connection strings, and set a random
-   32-byte hexadecimal `AUTH_SECRET` (see [authentication setup](docs/authentication.md)).
-2. Create the `turfit` database, or follow [the Docker database setup](docs/local-database.md).
-3. From the repository root, run:
 
 ```sh
 npm ci

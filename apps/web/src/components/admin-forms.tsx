@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import type { Court, Venue } from "../client/contracts";
 import { api, ClientError, errorMessage } from "../client/api";
-import { sports } from "../client/format";
+import { SportCombobox } from "./sport-combobox";
 import { Notice, useDialogBusy } from "./ui";
 
 export function VenueForm({
@@ -199,24 +199,7 @@ export function CourtForm({
             defaultValue={court?.name ?? ""}
           />
         </label>
-        <label>
-          Sport
-          <input
-            name="sport"
-            list="court-sports"
-            required
-            maxLength={60}
-            defaultValue={court?.sport ?? "Badminton"}
-          />
-          <datalist id="court-sports">
-            {sports.slice(1).map((sport) => (
-              <option key={sport} value={sport} />
-            ))}
-          </datalist>
-          <span className="field-hint">
-            Choose a sport before scheduling slots.
-          </span>
-        </label>
+        <SportCombobox defaultValue={court?.sport ?? "Badminton"} />
         <label className="check-label">
           <input
             type="checkbox"
