@@ -3,7 +3,8 @@
 Sports venue booking built with Next.js App Router, TypeScript, Prisma, and
 PostgreSQL. The current milestone integrates the existing database layer into
 the Next.js application, with validated server configuration, shared API
-infrastructure, a minimal home page, and database integration tests.
+infrastructure, cookie-based JWT authentication, a minimal home page, and
+database integration tests.
 
 ## Application structure
 
@@ -11,8 +12,9 @@ The full-stack application lives in `apps/web`, using the workspace name
 `@turfit/web`. The former `apps/api` database code has moved here; its schema and
 applied migration contents are unchanged.
 
-- `src/app`: Next.js pages/layouts and the health/fallback Route Handlers.
+- `src/app`: Next.js pages/layouts and the auth/health/fallback Route Handlers.
 - `src/server/api`: shared request handling, validation, safe errors, and logging.
+- `src/server/auth`: password hashing, JWTs, session rotation, CSRF, guards, and shared rate limits.
 - `src/database/client.ts`: testable database client factory for server code and CLI tools.
 - `src/server/database.ts`: server-only, lazy database access with one client per
   process, reused across development hot reloads.
@@ -40,7 +42,8 @@ a release candidate with a different migration API; do not upgrade it implicitly
 
 ## Setup
 
-1. Copy `.env.example` to `.env` and replace the development connection strings.
+1. Copy `.env.example` to `.env`, replace the connection strings, and set a random
+   32-byte hexadecimal `AUTH_SECRET` (see [authentication setup](docs/authentication.md)).
 2. Create the `turfit` and `turfit_test` databases using your PostgreSQL installation.
 3. From the repository root, run:
 
@@ -91,6 +94,7 @@ allow the test account to create schemas and install `btree_gist` if absent.
 | `npm run typecheck` | Check application, configuration, and test TypeScript. |
 | `npm run test:unit` | Check server configuration and API infrastructure without PostgreSQL. |
 | `npm run test:db` | Exercise constraints and races using real PostgreSQL connections. |
+| `npm run auth:create-admin` | Provision a new admin using temporary shell environment variables. |
 
 Inspect each generated migration and preserve the SQL constraints and triggers.
 **Do not use `prisma db push`: the Prisma schema alone cannot recreate all protections.**
@@ -111,6 +115,7 @@ request limits, security headers, origin checks, and logging. `GET /api/health`
 reports process liveness without querying the database. Configure `APP_ORIGIN`
 for the exact browser origin before using write endpoints.
 
-Authentication, endpoint-specific rate limiting, session-bound CSRF tokens,
-booking services, and the product UI follow. The current infrastructure does not
-implement authentication or the 12-hour cancellation policy.
+See [authentication](docs/authentication.md) for the endpoints, token/session
+lifecycle, cookie and CSRF policy, rate limits, admin provisioning, and code
+walkthrough. Booking services, the 12-hour cancellation policy, and the product
+UI follow.

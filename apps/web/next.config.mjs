@@ -9,7 +9,7 @@ const nextConfig = {
   poweredByHeader: false,
   turbopack: { root: repositoryRoot },
   outputFileTracingRoot: repositoryRoot,
-  serverExternalPackages: ["@prisma/adapter-pg", "pg", "pino"],
+  serverExternalPackages: ["@prisma/adapter-pg", "pg", "pino", "@node-rs/argon2"],
   async headers() {
     return [{ source: "/:path*", headers: getSecurityHeaders(process.env.NODE_ENV === "production") }];
   },

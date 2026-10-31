@@ -22,7 +22,8 @@
     "db:migrate:status": "npm run db:migrate:status --workspace @turfit/web",
     "typecheck": "npm run typecheck --workspace @turfit/web",
     "test:unit": "npm run test:unit --workspace @turfit/web",
-    "test:db": "npm run test:db --workspace @turfit/web"
+    "test:db": "npm run test:db --workspace @turfit/web",
+    "auth:create-admin": "npm run auth:create-admin --workspace @turfit/web"
   },
   "allowScripts": {
     "prisma@7.10.1": true,

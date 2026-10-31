@@ -15,13 +15,16 @@
     "db:migrate:status": "prisma migrate status",
     "typecheck": "next typegen && tsc --noEmit",
     "test:unit": "node --conditions=react-server --import tsx --test test/unit/*.test.ts",
-    "test:db": "node --conditions=react-server --import tsx --test --test-concurrency=1 test/database/*.test.ts"
+    "test:db": "node --conditions=react-server --import tsx --test --test-concurrency=1 test/database/*.test.ts",
+    "auth:create-admin": "node --conditions=react-server --import tsx scripts/create-admin.ts"
   },
   "dependencies": {
     "@next/env": "16.4.3",
+    "@node-rs/argon2": "2.2.2",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "dotenv": "17.4.2",
+    "jose": "6.2.14",
     "next": "16.4.3",
     "pg": "8.23.1",
     "pino": "10.4.0",

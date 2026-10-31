@@ -1,6 +1,7 @@
 const definitions = {
   BAD_REQUEST: { status: 400, message: "The request is invalid." },
   UNAUTHORIZED: { status: 401, message: "Sign in to continue." },
+  INVALID_CREDENTIALS: { status: 401, message: "Email or password is incorrect." },
   FORBIDDEN: { status: 403, message: "This request is not permitted." },
   NOT_FOUND: { status: 404, message: "The requested resource was not found." },
   METHOD_NOT_ALLOWED: { status: 405, message: "This HTTP method is not supported." },
@@ -22,16 +23,18 @@ export class ApiError extends Error {
   readonly status: number;
   readonly issues: readonly ValidationIssue[] | undefined;
   readonly retryAfterSeconds: number | undefined;
+  readonly headers: Headers;
 
   constructor(
     readonly code: ApiErrorCode,
-    options: { issues?: readonly ValidationIssue[]; retryAfterSeconds?: number } = {},
+    options: { issues?: readonly ValidationIssue[]; retryAfterSeconds?: number; headers?: HeadersInit } = {},
   ) {
     super(definitions[code].message);
     this.name = "ApiError";
     this.status = definitions[code].status;
     this.issues = options.issues;
     this.retryAfterSeconds = options.retryAfterSeconds;
+    this.headers = new Headers(options.headers);
     if (this.retryAfterSeconds !== undefined && (code !== "RATE_LIMITED"
       || !Number.isInteger(this.retryAfterSeconds) || this.retryAfterSeconds < 1 || this.retryAfterSeconds > 86_400)) {
       throw new TypeError("Invalid API retry interval.");

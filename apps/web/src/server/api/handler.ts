@@ -75,7 +75,7 @@ export function withApiHandler<TRouteContext = unknown>(
     } catch (error) {
       const safe = error instanceof ApiError ? error : new ApiError("INTERNAL_ERROR");
       errorCode = safe.code;
-      const headers = new Headers();
+      const headers = new Headers(safe.headers);
       if (safe.code === "METHOD_NOT_ALLOWED") headers.set("Allow", allow);
       if (safe.retryAfterSeconds !== undefined) headers.set("Retry-After", String(safe.retryAfterSeconds));
       response = Response.json({

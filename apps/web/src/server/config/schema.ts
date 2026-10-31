@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { DEFAULT_DATABASE_POOL_OPTIONS } from "../../database/pool-options.ts";
 import { DEFAULT_API_LIMITS, LOG_LEVELS } from "../api/options.ts";
+import { AUTH_DEFAULTS, CLIENT_IP_HEADERS } from "../auth/options.ts";
 
 function integerSetting(defaultValue: number, maximum: number) {
   return z.string()
@@ -16,6 +17,7 @@ function isPostgresUrl(value: string): boolean {
     const url = new URL(value);
     return (url.protocol === "postgresql:" || url.protocol === "postgres:")
       && url.hostname.length > 0
+      && (!url.searchParams.has("schema") || /^[A-Za-z_][A-Za-z0-9_]{0,62}$/.test(url.searchParams.get("schema") ?? ""))
       && decodeURIComponent(url.pathname).slice(1).length > 0
       && url.hash.length === 0;
   } catch {
@@ -47,7 +49,16 @@ const serverEnvironmentSchema = z.object({
   API_MAX_URL_BYTES: integerSetting(DEFAULT_API_LIMITS.maxUrlBytes, 65_536),
   API_BODY_TIMEOUT_MS: integerSetting(DEFAULT_API_LIMITS.bodyTimeoutMs, 60_000),
   LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
+  AUTH_SECRET: z.string().regex(/^[0-9a-f]{64}$/i, "Must be a randomly generated 32-byte hexadecimal key")
+    .refine((value) => new Set(value.toLowerCase()).size >= 8, "Use a randomly generated key, not a repeated placeholder"),
+  AUTH_ACCESS_TTL_SECONDS: integerSetting(AUTH_DEFAULTS.accessTtlSeconds, 3_600),
+  AUTH_SESSION_TTL_SECONDS: integerSetting(AUTH_DEFAULTS.sessionTtlSeconds, 2_592_000),
+  AUTH_REFRESH_RETRY_SECONDS: integerSetting(AUTH_DEFAULTS.refreshRetrySeconds, 10),
+  AUTH_CLIENT_IP_HEADER: z.enum(CLIENT_IP_HEADERS).default("none"),
 }).superRefine((settings, context) => {
+  if (settings.AUTH_SESSION_TTL_SECONDS <= settings.AUTH_ACCESS_TTL_SECONDS) {
+    context.addIssue({ code: "custom", path: ["AUTH_SESSION_TTL_SECONDS"], message: "Session lifetime must exceed access token lifetime" });
+  }
   if (settings.NODE_ENV !== "production" || !isAppOrigin(settings.APP_ORIGIN)) return;
   const origin = new URL(settings.APP_ORIGIN);
   const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname);
@@ -88,6 +99,13 @@ export function parseServerConfig(source: Readonly<Record<string, string | undef
       }),
     }),
     logging: Object.freeze({ level: environment.LOG_LEVEL }),
+    auth: Object.freeze({
+      secret: environment.AUTH_SECRET,
+      accessTtlSeconds: environment.AUTH_ACCESS_TTL_SECONDS,
+      sessionTtlSeconds: environment.AUTH_SESSION_TTL_SECONDS,
+      refreshRetrySeconds: environment.AUTH_REFRESH_RETRY_SECONDS,
+      clientIpHeader: environment.AUTH_CLIENT_IP_HEADER,
+    }),
     database: Object.freeze({
       connectionString: environment.DATABASE_URL,
       pool: Object.freeze({

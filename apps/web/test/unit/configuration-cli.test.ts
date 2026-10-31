@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { test } from "node:test";
+import { TEST_AUTH_SECRET } from "../fixtures/auth.js";
 
 const appDirectory = resolve(import.meta.dirname, "../..");
 
@@ -10,6 +11,7 @@ test("production preflight accepts valid configuration without connecting to Pos
     cwd: appDirectory,
     env: {
       ...process.env,
+      AUTH_SECRET: TEST_AUTH_SECRET,
       DATABASE_URL: "postgresql://test_user:test_only@127.0.0.1:1/turfit_test",
       DATABASE_POOL_MAX: "2",
       DATABASE_CONNECTION_TIMEOUT_MS: "1000",
@@ -28,6 +30,7 @@ test("production preflight exits nonzero and redacts invalid credentials", () =>
     cwd: appDirectory,
     env: {
       ...process.env,
+      AUTH_SECRET: TEST_AUTH_SECRET,
       DATABASE_URL: `mysql://test_user:${secret}@127.0.0.1/turfit_test`,
       DATABASE_POOL_MAX: "invalid",
     },

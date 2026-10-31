@@ -2,7 +2,8 @@
 
 This checkpoint adds reusable HTTP handling, bounded JSON input, validation,
 metadata-only structured logs, response headers, and a public liveness endpoint.
-It does not add authentication or booking business operations.
+Authentication builds on this layer; its implementation is described in the
+[authentication guide](authentication.md). Booking business operations follow.
 
 ## Structure
 
@@ -93,11 +94,10 @@ matching `Origin` header and reject `Sec-Fetch-Site: cross-site`. Scripts callin
 write endpoints must also send the configured Origin. Reads need no Origin.
 No credentialed cross-origin API access is enabled.
 
-Origin validation is a defense-in-depth component. Session-bound CSRF tokens,
-JWT/session validation, ownership and role checks, and actual endpoint-specific
-distributed rate limits will be wired with authentication. Defining a 429 error
-does not itself rate-limit traffic. There are currently no accepted write
-operations exposed by the application.
+Origin validation is a defense-in-depth component. The auth endpoints now add
+session-bound CSRF, JWT/session validation, role and ownership guards, and shared
+PostgreSQL rate limits. See [authentication](authentication.md) for the actual
+endpoint limits and how future protected handlers must use the route guards.
 
 ## Logging
 

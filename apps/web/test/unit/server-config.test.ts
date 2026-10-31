@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { getServerConfig } from "../../src/server/config/index.js";
-import { parseServerConfig, ServerConfigurationError } from "../../src/server/config/schema.js";
+import { parseServerConfig as parseRawServerConfig, ServerConfigurationError } from "../../src/server/config/schema.js";
+import { TEST_AUTH_SECRET } from "../fixtures/auth.js";
+
+function parseServerConfig(source: Readonly<Record<string, string | undefined>>) {
+  return parseRawServerConfig({ AUTH_SECRET: TEST_AUTH_SECRET, ...source });
+}
 
 const validDatabaseUrl = "postgresql://test_user:test_password@localhost:5432/turfit_test";
 
@@ -14,6 +19,7 @@ test("server configuration supplies pool defaults and ignores unrelated environm
       limits: { maxBodyBytes: 65_536, maxUrlBytes: 8_192, bodyTimeoutMs: 10_000 },
     },
     logging: { level: "info" },
+    auth: { secret: TEST_AUTH_SECRET, accessTtlSeconds: 900, sessionTtlSeconds: 604_800, refreshRetrySeconds: 5, clientIpHeader: "none" },
     database: {
       connectionString: validDatabaseUrl,
       pool: { maxConnections: 10, connectionTimeoutMs: 5_000, idleTimeoutMs: 30_000 },
@@ -110,11 +116,11 @@ test("application origin must be a trusted origin and use HTTPS for remote produ
 });
 
 test("server access retains one validated configuration snapshot for its instance", () => {
-  const keys = ["NODE_ENV", "DATABASE_URL", "DATABASE_POOL_MAX", "DATABASE_CONNECTION_TIMEOUT_MS", "DATABASE_IDLE_TIMEOUT_MS"] as const;
+  const keys = ["NODE_ENV", "DATABASE_URL", "DATABASE_POOL_MAX", "DATABASE_CONNECTION_TIMEOUT_MS", "DATABASE_IDLE_TIMEOUT_MS", "AUTH_SECRET"] as const;
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   try {
     Object.assign(process.env, {
-      NODE_ENV: "test", DATABASE_URL: validDatabaseUrl, DATABASE_POOL_MAX: "2",
+      NODE_ENV: "test", DATABASE_URL: validDatabaseUrl, DATABASE_POOL_MAX: "2", AUTH_SECRET: TEST_AUTH_SECRET,
     });
     delete process.env.DATABASE_CONNECTION_TIMEOUT_MS;
     delete process.env.DATABASE_IDLE_TIMEOUT_MS;

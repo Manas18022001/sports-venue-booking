@@ -1,7 +1,8 @@
 # Validated server configuration
 
 This checkpoint centralizes the settings currently consumed by Turfit's Next.js
-server and PostgreSQL client. No database migration is required.
+server and PostgreSQL client. Configuration changes alone require no migration;
+authentication separately adds a migration for shared rate-limit counters.
 
 ## Files and responsibilities
 
@@ -31,6 +32,11 @@ server and PostgreSQL client. No database migration is required.
 | `API_MAX_URL_BYTES` | `8192` | Whole decimal number from 1 to 65536 bytes. |
 | `API_BODY_TIMEOUT_MS` | `10000` | Whole decimal number from 1 to 60000 milliseconds. |
 | `LOG_LEVEL` | `info` | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`. |
+| `AUTH_SECRET` | Required | Random 32-byte key encoded as 64 hexadecimal characters; repeated placeholders rejected. |
+| `AUTH_ACCESS_TTL_SECONDS` | `900` | Whole decimal number from 1 to 3600. |
+| `AUTH_SESSION_TTL_SECONDS` | `604800` | Whole decimal number from 1 to 2592000; must exceed access lifetime. |
+| `AUTH_REFRESH_RETRY_SECONDS` | `5` | Whole decimal number from 1 to 10. |
+| `AUTH_CLIENT_IP_HEADER` | `none` | `none`, `x-forwarded-for`, `x-real-ip`, `cf-connecting-ip`; requires a trusted ingress when enabled. |
 
 An absent optional setting uses its default. A present but empty or invalid
 setting fails validation. Decimal fractions, scientific notation, hexadecimal,
@@ -101,5 +107,5 @@ slash is normalized away; credentials, paths, query strings, and fragments are
 rejected. HTTP loopback origins remain available for local production testing.
 
 See [API infrastructure](api-infrastructure.md) for logging, HTTP errors, input
-limits, and origin checks. Authentication, session-bound CSRF tokens, and actual
-endpoint-specific rate limiting are the following functional milestone.
+limits, and origin checks. See [authentication](authentication.md) for session
+lifetimes, secret management, CSRF, and trusted proxy configuration.
