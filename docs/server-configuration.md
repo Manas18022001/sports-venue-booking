@@ -26,6 +26,11 @@ server and PostgreSQL client. No database migration is required.
 | `DATABASE_POOL_MAX` | `10` | Whole decimal number from 1 to 100. |
 | `DATABASE_CONNECTION_TIMEOUT_MS` | `5000` | Whole decimal number from 1 to 60000 milliseconds. |
 | `DATABASE_IDLE_TIMEOUT_MS` | `30000` | Whole decimal number from 1 to 600000 milliseconds. |
+| `APP_ORIGIN` | `http://localhost:3000` | Exact HTTP(S) origin; remote production origins require HTTPS. |
+| `API_MAX_BODY_BYTES` | `65536` | Whole decimal number from 1 to 1048576 bytes. |
+| `API_MAX_URL_BYTES` | `8192` | Whole decimal number from 1 to 65536 bytes. |
+| `API_BODY_TIMEOUT_MS` | `10000` | Whole decimal number from 1 to 60000 milliseconds. |
+| `LOG_LEVEL` | `info` | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`. |
 
 An absent optional setting uses its default. A present but empty or invalid
 setting fails validation. Decimal fractions, scientific notation, hexadecimal,
@@ -91,5 +96,10 @@ Unit tests require no PostgreSQL server. Integration tests use the separate
 `TEST_DATABASE_URL`. The existing database factory still supports a connection
 string alone, using the same shared defaults, for command-line utilities.
 
-API logging, HTTP errors, CSRF, rate limiting, and authentication belong to their
-following implementation checkpoints.
+Configure `APP_ORIGIN` when changing the development port or deploying. A trailing
+slash is normalized away; credentials, paths, query strings, and fragments are
+rejected. HTTP loopback origins remain available for local production testing.
+
+See [API infrastructure](api-infrastructure.md) for logging, HTTP errors, input
+limits, and origin checks. Authentication, session-bound CSRF tokens, and actual
+endpoint-specific rate limiting are the following functional milestone.

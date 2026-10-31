@@ -9,6 +9,11 @@ test("server configuration supplies pool defaults and ignores unrelated environm
   const result = parseServerConfig({ DATABASE_URL: validDatabaseUrl, UNRELATED_SETTING: "ignored" });
   assert.deepEqual(result, {
     environment: "development",
+    api: {
+      origin: "http://localhost:3000",
+      limits: { maxBodyBytes: 65_536, maxUrlBytes: 8_192, bodyTimeoutMs: 10_000 },
+    },
+    logging: { level: "info" },
     database: {
       connectionString: validDatabaseUrl,
       pool: { maxConnections: 10, connectionTimeoutMs: 5_000, idleTimeoutMs: 30_000 },
@@ -65,6 +70,9 @@ for (const [name, maximum] of [
   ["DATABASE_POOL_MAX", 100],
   ["DATABASE_CONNECTION_TIMEOUT_MS", 60_000],
   ["DATABASE_IDLE_TIMEOUT_MS", 600_000],
+  ["API_MAX_BODY_BYTES", 1_048_576],
+  ["API_MAX_URL_BYTES", 65_536],
+  ["API_BODY_TIMEOUT_MS", 60_000],
 ] as const) {
   test(`${name} accepts its boundaries and rejects invalid numeric input`, () => {
     for (const value of ["1", String(maximum)]) {
@@ -83,8 +91,22 @@ test("parsed configuration is immutable at every nested level", () => {
   assert.ok(Object.isFrozen(result));
   assert.ok(Object.isFrozen(result.database));
   assert.ok(Object.isFrozen(result.database.pool));
+  assert.ok(Object.isFrozen(result.api));
+  assert.ok(Object.isFrozen(result.api.limits));
+  assert.ok(Object.isFrozen(result.logging));
   assert.equal(Reflect.set(result.database.pool, "maxConnections", 99), false);
   assert.equal(result.database.pool.maxConnections, 2);
+});
+
+test("application origin must be a trusted origin and use HTTPS for remote production hosts", () => {
+  for (const APP_ORIGIN of ["https://turfit.example", "https://turfit.example/", "http://localhost:3000", "http://127.0.0.1:3000", "http://[::1]:3000"]) {
+    assert.doesNotThrow(() => parseServerConfig({ NODE_ENV: "production", DATABASE_URL: validDatabaseUrl, APP_ORIGIN }));
+  }
+  for (const APP_ORIGIN of ["", "http://turfit.example", "https://user:secret@turfit.example", "https://turfit.example/path", "https://turfit.example?query=value", "https://turfit.example#fragment"]) {
+    assert.throws(() => parseServerConfig({ NODE_ENV: "production", DATABASE_URL: validDatabaseUrl, APP_ORIGIN }), ServerConfigurationError);
+  }
+  assert.equal(parseServerConfig({ DATABASE_URL: validDatabaseUrl, APP_ORIGIN: "https://turfit.example/" }).api.origin, "https://turfit.example");
+  assert.throws(() => parseServerConfig({ DATABASE_URL: validDatabaseUrl, LOG_LEVEL: "invalid" }), ServerConfigurationError);
 });
 
 test("server access retains one validated configuration snapshot for its instance", () => {

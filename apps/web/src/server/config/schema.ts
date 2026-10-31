@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_DATABASE_POOL_OPTIONS } from "../../database/pool-options.ts";
+import { DEFAULT_API_LIMITS, LOG_LEVELS } from "../api/options.ts";
 
 function integerSetting(defaultValue: number, maximum: number) {
   return z.string()
@@ -22,6 +23,17 @@ function isPostgresUrl(value: string): boolean {
   }
 }
 
+function isAppOrigin(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && url.hostname.length > 0
+      && url.username === "" && url.password === "" && url.pathname === "/"
+      && url.search === "" && url.hash === "";
+  } catch {
+    return false;
+  }
+}
+
 const serverEnvironmentSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1, "Is required")
@@ -29,6 +41,19 @@ const serverEnvironmentSchema = z.object({
   DATABASE_POOL_MAX: integerSetting(DEFAULT_DATABASE_POOL_OPTIONS.maxConnections, 100),
   DATABASE_CONNECTION_TIMEOUT_MS: integerSetting(DEFAULT_DATABASE_POOL_OPTIONS.connectionTimeoutMs, 60_000),
   DATABASE_IDLE_TIMEOUT_MS: integerSetting(DEFAULT_DATABASE_POOL_OPTIONS.idleTimeoutMs, 600_000),
+  APP_ORIGIN: z.string().refine(isAppOrigin, "Must be an HTTP(S) origin without credentials, a path, query, or fragment")
+    .default("http://localhost:3000"),
+  API_MAX_BODY_BYTES: integerSetting(DEFAULT_API_LIMITS.maxBodyBytes, 1_048_576),
+  API_MAX_URL_BYTES: integerSetting(DEFAULT_API_LIMITS.maxUrlBytes, 65_536),
+  API_BODY_TIMEOUT_MS: integerSetting(DEFAULT_API_LIMITS.bodyTimeoutMs, 60_000),
+  LOG_LEVEL: z.enum(LOG_LEVELS).default("info"),
+}).superRefine((settings, context) => {
+  if (settings.NODE_ENV !== "production" || !isAppOrigin(settings.APP_ORIGIN)) return;
+  const origin = new URL(settings.APP_ORIGIN);
+  const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname);
+  if (origin.protocol !== "https:" && !loopback) {
+    context.addIssue({ code: "custom", path: ["APP_ORIGIN"], message: "Production origins must use HTTPS; HTTP loopback is allowed for local testing" });
+  }
 });
 
 export class ServerConfigurationError extends Error {
@@ -54,6 +79,15 @@ export function parseServerConfig(source: Readonly<Record<string, string | undef
   const environment = result.data;
   return Object.freeze({
     environment: environment.NODE_ENV,
+    api: Object.freeze({
+      origin: new URL(environment.APP_ORIGIN).origin,
+      limits: Object.freeze({
+        maxBodyBytes: environment.API_MAX_BODY_BYTES,
+        maxUrlBytes: environment.API_MAX_URL_BYTES,
+        bodyTimeoutMs: environment.API_BODY_TIMEOUT_MS,
+      }),
+    }),
+    logging: Object.freeze({ level: environment.LOG_LEVEL }),
     database: Object.freeze({
       connectionString: environment.DATABASE_URL,
       pool: Object.freeze({

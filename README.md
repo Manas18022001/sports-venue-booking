@@ -2,7 +2,8 @@
 
 Sports venue booking built with Next.js App Router, TypeScript, Prisma, and
 PostgreSQL. The current milestone integrates the existing database layer into
-the Next.js application, with a minimal home page and database integration tests.
+the Next.js application, with validated server configuration, shared API
+infrastructure, a minimal home page, and database integration tests.
 
 ## Application structure
 
@@ -10,7 +11,8 @@ The full-stack application lives in `apps/web`, using the workspace name
 `@turfit/web`. The former `apps/api` database code has moved here; its schema and
 applied migration contents are unchanged.
 
-- `src/app`: Next.js pages and layouts; Route Handlers will be added here later.
+- `src/app`: Next.js pages/layouts and the health/fallback Route Handlers.
+- `src/server/api`: shared request handling, validation, safe errors, and logging.
 - `src/database/client.ts`: testable database client factory for server code and CLI tools.
 - `src/server/database.ts`: server-only, lazy database access with one client per
   process, reused across development hot reloads.
@@ -87,7 +89,7 @@ allow the test account to create schemas and install `btree_gist` if absent.
 | `npm run db:migrate:deploy` | Apply checked-in migrations. |
 | `npm run db:migrate:status` | Inspect migration status. |
 | `npm run typecheck` | Check application, configuration, and test TypeScript. |
-| `npm run test:unit` | Check server configuration without connecting to PostgreSQL. |
+| `npm run test:unit` | Check server configuration and API infrastructure without PostgreSQL. |
 | `npm run test:db` | Exercise constraints and races using real PostgreSQL connections. |
 
 Inspect each generated migration and preserve the SQL constraints and triggers.
@@ -104,6 +106,11 @@ Server configuration is validated at Node.js startup. See
 defaults, startup behavior, and code walkthrough. Database pool size and timeouts
 are configurable; omitted optional settings retain their previous defaults.
 
-Shared API infrastructure is the next checkpoint. Authentication, booking
-services, and the product UI follow. The database layer alone does not implement
-authentication or the 12-hour cancellation policy.
+See [API infrastructure](docs/api-infrastructure.md) for response contracts,
+request limits, security headers, origin checks, and logging. `GET /api/health`
+reports process liveness without querying the database. Configure `APP_ORIGIN`
+for the exact browser origin before using write endpoints.
+
+Authentication, endpoint-specific rate limiting, session-bound CSRF tokens,
+booking services, and the product UI follow. The current infrastructure does not
+implement authentication or the 12-hour cancellation policy.
