@@ -7,5 +7,7 @@ config({ path: resolve(import.meta.dirname, "../../.env"), quiet: true });
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: { path: "prisma/migrations" },
-  datasource: { url: env("DATABASE_URL") },
+  // Migrations need a direct connection; application traffic can use a pooler.
+  // Local development keeps using DATABASE_URL when DIRECT_URL is unset.
+  datasource: { url: process.env.DIRECT_URL?.trim() || env("DATABASE_URL") },
 });

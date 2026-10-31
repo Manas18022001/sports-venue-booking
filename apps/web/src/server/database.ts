@@ -1,4 +1,5 @@
 import "server-only";
+import { attachDatabasePool } from "@vercel/functions";
 import { createDatabaseClient } from "../database/client";
 import type { DatabaseClient } from "../database/client";
 import { getServerConfig } from "./config";
@@ -13,6 +14,7 @@ export function getDatabase(): DatabaseClient {
   const { database } = getServerConfig();
   if (processDatabase.turfitDatabase) return processDatabase.turfitDatabase;
 
-  processDatabase.turfitDatabase = createDatabaseClient(database.connectionString, database.pool);
+  processDatabase.turfitDatabase = createDatabaseClient(database.connectionString, database.pool,
+    process.env.VERCEL === "1" ? attachDatabasePool : undefined);
   return processDatabase.turfitDatabase;
 }
