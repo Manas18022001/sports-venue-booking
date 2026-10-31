@@ -81,7 +81,7 @@ export function withApiHandler<TRouteContext = unknown>(
       response = Response.json({
         error: {
           code: safe.code, message: safe.message,
-          ...(safe.code === "VALIDATION_ERROR" && safe.issues ? { issues: safe.issues } : {}),
+          ...(["VALIDATION_ERROR", "CONFLICT"].includes(safe.code) && safe.issues ? { issues: safe.issues } : {}),
         },
         meta: { requestId },
       }, { status: safe.status, headers });

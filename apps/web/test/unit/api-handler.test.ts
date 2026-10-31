@@ -71,6 +71,15 @@ test("unsupported methods and automatic OPTIONS provide an explicit Allow header
   assert.ok(head.headers.get("x-request-id"));
 });
 
+test("field-specific conflicts reach the form through the HTTP error envelope", async () => {
+  const issues = [{ field: "name", message: "Another court in this venue already uses this name." }];
+  const handler = withApiHandler({ operation: "test.field_conflict", methods: ["GET"] },
+    () => { throw new ApiError("CONFLICT", { issues }); }, dependencies);
+  const response = await handler(new Request("https://turfit.test/api/test"));
+  assert.equal(response.status, 409);
+  assert.deepEqual((await response.json()).error.issues, issues);
+});
+
 test("write requests require the configured origin and reject cross-site fetch metadata", async () => {
   const handler = withApiHandler({ operation: "test.write", methods: ["POST"] },
     (_request, context) => context.success({ ok: true }), dependencies);
