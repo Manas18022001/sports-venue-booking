@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { ClientError, errorMessage, signIn } from "../client/api";
+import { ClientError, signIn } from "../client/api";
 import { safeReturnPath } from "../client/format";
 import { useAuth } from "./providers";
 import { Icon } from "./icon";
 import { Notice } from "./ui";
+import { FieldError, FormErrors, useFormErrors } from "./form-errors";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
@@ -16,10 +17,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const register = mode === "register";
   const [next, setNext] = useState("/");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [issues, setIssues] = useState<
-    Array<{ field: string; message: string }>
-  >([]);
+  const errors = useFormErrors({ name: "Full name", email: "Email address", password: "Password" });
   useEffect(() => {
     setNext(
       safeReturnPath(new URLSearchParams(window.location.search).get("next")),
@@ -27,9 +25,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     const fields = new FormData(event.currentTarget);
-    setError("");
-    setIssues([]);
+    errors.clear();
     setBusy(true);
     try {
       await signIn(mode, {
@@ -40,14 +38,15 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       router.replace(next);
       router.refresh();
     } catch (error) {
-      setError(errorMessage(error));
-      if (error instanceof ClientError) setIssues(error.issues);
+      errors.report(error, error instanceof ClientError && error.code === "CONFLICT"
+        ? "We couldn’t create an account with these details. Try signing in if you already have an account."
+        : register && error instanceof ClientError && (error.status === 0 || error.status >= 500)
+          ? "We couldn’t confirm whether your account was created. Try signing in with these details before registering again."
+          : undefined);
     } finally {
       setBusy(false);
     }
   }
-  const hint = (field: string) =>
-    issues.find((issue) => issue.field === field)?.message;
   return (
     <main className="container auth-page">
       <section className="auth-story">
@@ -93,8 +92,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             </Link>
           </div>
         ) : (
-          <form onSubmit={(event) => void submit(event)} className="form-stack">
-            {error && <Notice>{error}</Notice>}
+          <form {...errors.formProps} onSubmit={(event) => void submit(event)} className="form-stack">
+            <FormErrors errors={errors} />
             {register && (
               <label>
                 Full name
@@ -104,11 +103,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   required
                   maxLength={120}
                   disabled={busy}
-                  aria-invalid={Boolean(hint("name"))}
+                  {...errors.input("name")}
                 />
-                {hint("name") && (
-                  <span className="field-error">{hint("name")}</span>
-                )}
+                <FieldError errors={errors} field="name" />
               </label>
             )}
             <label>
@@ -121,11 +118,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 maxLength={254}
                 disabled={busy}
                 placeholder="you@example.com"
-                aria-invalid={Boolean(hint("email"))}
+                {...errors.input("email")}
               />
-              {hint("email") && (
-                <span className="field-error">{hint("email")}</span>
-              )}
+              <FieldError errors={errors} field="email" />
             </label>
             <label>
               Password
@@ -137,16 +132,14 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 minLength={register ? 15 : 1}
                 maxLength={register ? 256 : 512}
                 disabled={busy}
-                aria-invalid={Boolean(hint("password"))}
+                {...errors.input("password", register ? "registration-password-hint" : undefined)}
               />
               {register && (
-                <span className="field-hint">
+                <span className="field-hint" id="registration-password-hint">
                   Use a memorable passphrase of 15–128 characters.
                 </span>
               )}
-              {hint("password") && (
-                <span className="field-error">{hint("password")}</span>
-              )}
+              <FieldError errors={errors} field="password" />
             </label>
             <button className="button button-full" disabled={busy}>
               {busy ? "One moment…" : register ? "Create account" : "Sign in"}

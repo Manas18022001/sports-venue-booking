@@ -108,7 +108,12 @@ test("admin venue and court creation validate fields, prevent duplicate names, a
   const venue = await admin.createVenue({ name: "New Venue", city: "Pune", address: "Street" });
   assert.equal(venue.timezone, "Asia/Kolkata");
   const court = await admin.createCourt(venue.id, { name: "Court A", sport: "Tennis" });
-  await assert.rejects(admin.createCourt(venue.id, { name: "Court A", sport: "Tennis" }), code("CONFLICT"));
+  await assert.rejects(admin.createCourt(venue.id, { name: "Court A", sport: "Tennis" }), (error: unknown) => {
+    assert.ok(error instanceof ApiError);
+    assert.equal(error.code, "CONFLICT");
+    assert.deepEqual(error.issues, [{ field: "name", message: "Another court in this venue already uses this name." }]);
+    return true;
+  });
   await assert.rejects(admin.updateCourt(randomUUID(), court.id, { name: "Wrong" }), code("NOT_FOUND"));
   await assert.rejects(admin.createCourt(randomUUID(), { name: "A", sport: "Tennis" }), code("NOT_FOUND"));
   await assert.rejects(admin.updateVenue(venue.id, { timezone: "Broken/Zone" }), code("VALIDATION_ERROR"));

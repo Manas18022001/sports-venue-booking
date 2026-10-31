@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { BookingDetail, BookingList } from "../client/contracts";
-import { api, ClientError, errorMessage } from "../client/api";
+import { api, ClientError } from "../client/api";
 import { instantDate, money, timeLabel } from "../client/format";
 import { useAuth } from "./providers";
 import { EmptyState, Modal, Notice, Spinner, useRequest } from "./ui";
 import { Icon } from "./icon";
+import { FormValidationError } from "../client/form-errors";
+import { FieldError, FormErrors, useFormErrors } from "./form-errors";
 
 export function StatusBadge({ status }: { status: string }) {
   return (
@@ -171,7 +173,7 @@ export function BookingDetails({
   const [selected, setSelected] = useState<string[]>([]);
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const errors = useFormErrors({ reason: "Reason for cancellation", itemIds: "Selected slots" });
   const [success, setSuccess] = useState("");
   const [reason, setReason] = useState("");
   const [attempt, setAttempt] = useState<{
@@ -185,6 +187,11 @@ export function BookingDetails({
   }, []);
   async function cancel() {
     if (busy) return;
+    errors.clear();
+    if (!attempt && admin && !reason.trim()) {
+      errors.report(new FormValidationError([{ field: "reason", message: "Enter a reason so the customer knows why these slots are being cancelled." }]));
+      return;
+    }
     const operation = attempt ?? {
       key: crypto.randomUUID(),
       itemIds: [...selected].sort(),
@@ -192,7 +199,6 @@ export function BookingDetails({
     };
     setAttempt(operation);
     setBusy(true);
-    setError("");
     try {
       await api<BookingDetail>(
         `/api/${admin ? "admin/" : ""}bookings/${id}/cancel`,
@@ -214,7 +220,9 @@ export function BookingDetails({
       setSuccess("Your selected slots have been cancelled.");
       request.reload();
     } catch (error) {
-      setError(errorMessage(error));
+      errors.report(error, error instanceof ClientError && error.code === "IDEMPOTENCY_KEY_REUSED"
+        ? "This cancellation attempt no longer matches. Close this dialog and refresh the booking before trying again."
+        : undefined);
       const unknown =
         !(error instanceof ClientError) ||
         error.status === 0 ||
@@ -275,7 +283,7 @@ export function BookingDetails({
           </div>
         )}
       {success && <Notice kind="success">{success}</Notice>}
-      {request.error && <Notice>{request.error}</Notice>}
+      {request.error && <Notice>{request.error} <button type="button" className="inline-button" onClick={request.reload}>Reload booking</button></Notice>}
       <div className="venue-intro">
         <div>
           <span className="eyebrow">{booking.reference}</span>
@@ -382,7 +390,7 @@ export function BookingDetails({
                 className="button button-danger"
                 disabled={!activeSelection.length || busy}
                 onClick={() => {
-                  setError("");
+                  errors.clear();
                   setModal(true);
                 }}
               >
@@ -447,16 +455,25 @@ export function BookingDetails({
           onClose={() => setModal(false)}
           busy={busy}
         >
+          <form {...errors.formProps} onSubmit={(event) => { event.preventDefault(); void cancel(); }}>
           <p>
             {uncertain
               ? "Retrying checks the same cancellation attempt and won’t cancel additional slots."
               : `Cancel ${activeSelection.length} selected ${activeSelection.length === 1 ? "slot" : "slots"}? The rest of your booking stays confirmed.`}
           </p>
-          {error && <Notice>{error}</Notice>}
+          <FormErrors errors={errors} />
+          {errors.fieldMessage("itemIds") && (
+            <div tabIndex={-1} data-error-field="itemIds" {...errors.input("itemIds")}>
+              <FieldError errors={errors} field="itemIds" />
+              <p className="small muted">Close this dialog and refresh the booking to review which slots can still be cancelled.</p>
+            </div>
+          )}
           {admin && (
             <label className="form-label">
               Reason for cancellation
               <textarea
+                name="reason"
+                {...errors.input("reason")}
                 value={reason}
                 onChange={(event) => {
                   setReason(event.target.value);
@@ -467,10 +484,12 @@ export function BookingDetails({
                 disabled={busy || uncertain}
                 placeholder="Let the customer know why these slots are being cancelled."
               />
+              <FieldError errors={errors} field="reason" />
             </label>
           )}
           <div className="modal-actions">
             <button
+              type="button"
               className="button button-secondary"
               disabled={busy}
               onClick={() => setModal(false)}
@@ -478,13 +497,13 @@ export function BookingDetails({
               {uncertain ? "Close" : "Keep booking"}
             </button>
             <button
+              type="submit"
               className="button button-danger"
               disabled={
                 busy ||
                 (!uncertain &&
-                  (!activeSelection.length || (admin && !reason.trim())))
+                  !activeSelection.length)
               }
-              onClick={() => void cancel()}
             >
               {busy
                 ? "Checking…"
@@ -493,6 +512,7 @@ export function BookingDetails({
                   : "Confirm cancellation"}
             </button>
           </div>
+          </form>
         </Modal>
       )}
     </main>

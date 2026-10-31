@@ -207,10 +207,11 @@ export async function signOut() {
   update(null);
   channel?.postMessage("changed");
 }
-export function errorMessage(error: unknown) {
+export function errorMessage(error: unknown, includeIssues = true) {
   if (error instanceof ClientError)
     return (
       error.message +
+      (includeIssues && error.issues.length ? ` ${[...new Set(error.issues.map((issue) => issue.message))].join(" ")}` : "") +
       (error.retryAfter ? ` Try again in ${error.retryAfter} seconds.` : "")
     );
   return "Something went wrong. Please try again.";

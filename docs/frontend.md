@@ -71,6 +71,8 @@ history. Editing reserved or outdated slots still obeys the backend rules.
 | `components/bookings.tsx` | Customer/admin history, details, and cancellation. |
 | `components/admin.tsx`, `admin-forms.tsx`, `admin-slots.tsx` | Venue/court workspace, editing, preview, acknowledgement, and generation. |
 | `client/api.ts` | Cookie-based API calls, CSRF, session recovery, safe errors. |
+| `components/form-errors.tsx` | Shared inline errors, summaries, field associations, native validation, and focus management. |
+| `client/form-errors.ts` | Expected input errors, local-parser field mapping, and safe form-error descriptions. |
 | `client/contracts.ts` | Types derived from server service return values using erased type-only imports. |
 | `client/cart.ts` | Selection persistence validation and totals. |
 | `client/format.ts` | Money, dates, venue-local input conversion, and safe return URLs. |
@@ -144,6 +146,40 @@ Native dialogs provide focus trapping and Escape handling; an in-progress form
 prevents dismissal. Form controls use labels, constraints, explicit disabled
 states, and visible errors. Native smooth scrolling and restrained transitions
 respect reduced-motion preferences. No scroll-interception library is added.
+
+## Error presentation and recovery
+
+Login, registration, venue/court creation and editing, slot preview/generation,
+slot editing, checkout, and both cancellation flows share error presentation.
+`useFormErrors` keeps the general message and field issues, maps API field names
+to controls (for example, `durationMinutes` to `duration`), and groups indexed
+array errors under their selection control. The controls keep their values.
+
+`FormErrors` displays an alert with the specific issues and links back to the
+affected controls. `FieldError` displays a message beside its control, which uses
+`aria-invalid` and `aria-describedby`. After submission, focus moves to the first
+invalid control in form order; errors without an editable field focus the summary.
+Native required/type/range validation uses the same presentation. Editing a field
+clears only its own errors and does not steal focus or erase other field errors.
+Discovery and schedule filters also retain and display query validation details.
+
+Backend validation uses fixed messages selected by approved codes for timezones,
+password rules, time windows, and generation limits. Arbitrary custom validator
+messages and submitted passwords are not reflected in responses. Local price and
+time parsers distinguish expected input errors from unexpected runtime failures;
+the latter retain a generic public message.
+
+Recovery depends on the operation. Rate limits include the server's retry interval.
+Unavailable slots offer updated availability; stale slot edits instruct the admin
+to reopen current data. A lost booking/cancellation response keeps its original
+idempotency key and body. An uncertain venue/court creation or slot-generation
+response tells the admin to check the saved list/schedule before creating again.
+No write is automatically retried because it failed validation or returned a 5xx.
+
+The generation limits are per batch: 1–20 courts, at most 500 generated slots in
+total, and at most 26 elapsed hours from Start to End. They do not cap the venue's
+overall court count or stored schedule. Defaults and the requirement to explicitly
+acknowledge unused time remain the same.
 
 ## Assets and verification
 

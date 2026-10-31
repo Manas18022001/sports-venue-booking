@@ -15,7 +15,7 @@ const venueFields = {
   description: z.string().trim().max(5000),
   address: z.string().trim().min(1).max(500),
   city: z.string().trim().min(1).max(100),
-  timezone: z.string().max(64).refine(isTimeZone),
+  timezone: z.string().max(64).refine(isTimeZone, { params: { messageCode: "timezone" } }),
   currency: z.literal("INR"),
   imageUrl: z.url({ protocol: /^https$/ }).max(2048).nullable(),
   isActive: z.boolean(),
@@ -31,18 +31,20 @@ export const courtUpdateSchema = z.object(courtFields).partial().strict().refine
 
 // Offset-bearing instants make overnight windows and repeated DST hours explicit.
 const minuteInstant = z.iso.datetime({ offset: true, precision: 0 })
-  .refine(value => Number.isFinite(Date.parse(value)) && Date.parse(value) % 60_000 === 0);
+  .refine(value => Number.isFinite(Date.parse(value)) && Date.parse(value) % 60_000 === 0, { params: { messageCode: "minuteAligned" } });
 export const generationSchema = z.object({
-  courtIds: z.array(idSchema).min(1).max(20).refine(value => new Set(value).size === value.length),
+  courtIds: z.array(idSchema).min(1).max(20).refine(value => new Set(value).size === value.length, { params: { messageCode: "distinctCourts" } }),
   startsAt: minuteInstant,
   endsAt: minuteInstant,
   durationMinutes: z.number().int().min(5).max(1440).default(60),
   priceMinor: z.number().int().min(0).max(2_147_483_647),
 }).strict().superRefine((value, context) => {
   const minutes = (Date.parse(value.endsAt) - Date.parse(value.startsAt)) / 60_000;
-  if (!(minutes > 0 && minutes <= 26 * 60)) context.addIssue({ code: "custom", path: ["endsAt"], message: "Invalid window" });
+  if (!(minutes > 0)) context.addIssue({ code: "custom", path: ["endsAt"], params: { messageCode: "windowOrder" } });
+  else if (minutes > 26 * 60) context.addIssue({ code: "custom", path: ["endsAt"], params: { messageCode: "windowLength" } });
   const count = Math.floor(minutes / value.durationMinutes);
-  if (!(count >= 1 && count * value.courtIds.length <= 500)) context.addIssue({ code: "custom", path: ["durationMinutes"], message: "Invalid batch size" });
+  if (minutes > 0 && count < 1) context.addIssue({ code: "custom", path: ["durationMinutes"], params: { messageCode: "batchMinimum" } });
+  if (count * value.courtIds.length > 500) context.addIssue({ code: "custom", path: ["durationMinutes"], params: { messageCode: "batchMaximum" } });
 });
 export const generationConfirmSchema = generationSchema.safeExtend({
   previewToken: z.string().min(1).max(4096),

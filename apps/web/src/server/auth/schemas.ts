@@ -7,9 +7,9 @@ export const registrationSchema = z.object({
   name: z.string().trim().min(1).max(120),
   email: normalizedEmail,
   password: z.string().max(512)
-    .refine((value) => Array.from(value).length >= 15 && Array.from(value).length <= 128)
-    .refine((value) => Buffer.byteLength(value, "utf8") <= 512)
-    .refine((value) => !blockedPasswords.has(value.toLowerCase())),
+    .refine((value) => Array.from(value).length >= 15 && Array.from(value).length <= 128, { params: { messageCode: "passwordLength" } })
+    .refine((value) => Buffer.byteLength(value, "utf8") <= 512, { params: { messageCode: "passwordBytes" } })
+    .refine((value) => !blockedPasswords.has(value.toLowerCase()), { params: { messageCode: "passwordCommon" } }),
 }).strict();
 
 export const loginSchema = z.object({

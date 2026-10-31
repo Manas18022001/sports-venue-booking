@@ -338,6 +338,8 @@ export function AdminVenue({ id }: { id: string }) {
             Schedule date
             <input
               type="date"
+              aria-invalid={Boolean(schedule.fieldError("date"))}
+              aria-describedby={schedule.fieldError("date") ? "schedule-date-error" : undefined}
               value={date}
               onChange={(event) => {
                 if (event.target.value) {
@@ -347,10 +349,13 @@ export function AdminVenue({ id }: { id: string }) {
                 }
               }}
             />
+            {schedule.fieldError("date") && <span id="schedule-date-error" className="field-error">{schedule.fieldError("date")}</span>}
           </label>
           <label>
             Court
             <select
+              aria-invalid={Boolean(schedule.fieldError("courtId"))}
+              aria-describedby={schedule.fieldError("courtId") ? "schedule-court-error" : undefined}
               value={courtFilter}
               onChange={(event) => {
                 setCourtFilter(event.target.value);
@@ -365,13 +370,14 @@ export function AdminVenue({ id }: { id: string }) {
                 </option>
               ))}
             </select>
+            {schedule.fieldError("courtId") && <span id="schedule-court-error" className="field-error">{schedule.fieldError("courtId")}</span>}
           </label>
           <button className="button button-secondary" onClick={refreshSlots}>
             <Icon name="refresh" size={16} />
             Refresh
           </button>
         </div>
-        {schedule.error && <Notice>{schedule.error}</Notice>}
+        {schedule.error && <Notice>{schedule.error} <button type="button" className="inline-button" onClick={refreshSlots}>Reload schedule</button></Notice>}
         {schedule.loading && !allSlots.length ? (
           <Spinner label="Checking the schedule" />
         ) : !allSlots.length && !schedule.error ? (

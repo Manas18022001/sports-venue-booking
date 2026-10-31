@@ -4,19 +4,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { BookingDetail } from "../client/contracts";
-import { api, ClientError, errorMessage } from "../client/api";
+import { api, ClientError } from "../client/api";
 import { cartTotal } from "../client/cart";
 import { instantDate, money, timeLabel } from "../client/format";
 import { useAuth, useCart } from "./providers";
 import { EmptyState, Notice, Spinner } from "./ui";
 import { Icon } from "./icon";
+import { FieldError, FormErrors, useFormErrors } from "./form-errors";
 
 export function Checkout() {
   const { cart, ready, remove, clear, pending } = useCart();
   const auth = useAuth();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const errors = useFormErrors({ items: "Selected slots", venueId: "Venue", currency: "Currency" });
   const [conflict, setConflict] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   if (!ready)
@@ -50,7 +51,7 @@ export function Checkout() {
   async function confirm() {
     if (!auth.user || busy || anotherAccount) return;
     setBusy(true);
-    setError("");
+    errors.clear();
     setConflict(false);
     pending(auth.user.id);
     try {
@@ -71,14 +72,16 @@ export function Checkout() {
       clear();
       router.replace(`/bookings/${result.booking.id}?confirmed=1`);
     } catch (error) {
-      setError(errorMessage(error));
+      errors.report(error, error instanceof ClientError && error.code === "IDEMPOTENCY_KEY_REUSED"
+        ? "This booking attempt no longer matches your selection. Check My bookings before reviewing availability and starting another booking."
+        : undefined);
       if (
         error instanceof ClientError &&
         error.status > 0 &&
         error.status < 500
       ) {
         pending(null);
-        setConflict(error.status === 409);
+        setConflict(error.status === 409 || error.status === 422);
         if (error.status === 401) router.push("/login?next=%2Fcheckout");
       }
     } finally {
@@ -173,6 +176,7 @@ export function Checkout() {
           </div>
         </section>
         <aside className="booking-summary checkout-summary">
+          <form {...errors.formProps} onSubmit={(event) => { event.preventDefault(); if (acknowledged) void confirm(); }}>
           <span className="eyebrow">BOOKING SUMMARY</span>
           <h2>All set to play?</h2>
           <div className="summary-line">
@@ -188,7 +192,12 @@ export function Checkout() {
           <p className="small muted">
             No online payment is collected in this application.
           </p>
-          {error && <Notice>{error}</Notice>}
+          <FormErrors errors={errors} />
+          {errors.fieldMessage("items") && (
+            <div tabIndex={-1} data-error-field="items" {...errors.input("items")}>
+              <FieldError errors={errors} field="items" />
+            </div>
+          )}
           {conflict && (
             <Link
               className="button button-secondary button-full"
@@ -210,7 +219,7 @@ export function Checkout() {
           {auth.error ? (
             <>
               <Notice>{auth.error}</Notice>
-              <button className="button button-secondary" onClick={auth.reload}>
+              <button type="button" className="button button-secondary" onClick={auth.reload}>
                 Check session again
               </button>
             </>
@@ -239,7 +248,7 @@ export function Checkout() {
               <button
                 className="button button-full"
                 disabled={busy || !acknowledged || anotherAccount}
-                onClick={() => void confirm()}
+                type="submit"
               >
                 {busy
                   ? "Confirming your booking…"
@@ -276,6 +285,7 @@ export function Checkout() {
               unavailable, no partial booking is made.
             </p>
           </div>
+          </form>
         </aside>
       </div>
     </main>

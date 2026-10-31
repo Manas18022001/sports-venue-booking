@@ -5,7 +5,7 @@ import type { ServerConfig } from "../config/schema";
 import { ApiError } from "../api/errors";
 import { validate } from "../api/validation";
 import { databaseNow, translateWriteError } from "./database";
-import { writeTransaction } from "../database-operations";
+import { databaseSqlState, writeTransaction } from "../database-operations";
 import { generationPlan, signPreview, verifyPreview } from "./generation";
 import {
   courtCreateSchema, courtUpdateSchema, generationConfirmSchema, generationSchema,
@@ -16,6 +16,13 @@ function definedFields<T extends object>(value: T) {
   return Object.fromEntries(Object.entries(value).filter(([, field]) => field !== undefined)) as {
     [K in keyof T]: Exclude<T[K], undefined>;
   };
+}
+
+function courtWriteError(error: unknown): never {
+  if (!(error instanceof ApiError) && ((error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") || databaseSqlState(error) === "23505")) {
+    throw new ApiError("CONFLICT", { issues: [{ field: "name", message: "Another court in this venue already uses this name." }] });
+  }
+  return translateWriteError(error);
 }
 
 export function createVenueAdminService(db: DatabaseClient, config: ServerConfig) {
@@ -36,7 +43,9 @@ export function createVenueAdminService(db: DatabaseClient, config: ServerConfig
         const venue = await tx.venue.findUnique({ where: { id: venueId } });
         if (!venue) throw new ApiError("NOT_FOUND");
         if ((data.timezone && data.timezone !== venue.timezone) || (data.currency && data.currency !== venue.currency)) {
-          if (await tx.slot.count({ where: { venueId } }) || await tx.booking.count({ where: { venueId } })) throw new ApiError("CONFLICT");
+          if (await tx.slot.count({ where: { venueId } }) || await tx.booking.count({ where: { venueId } })) throw new ApiError("CONFLICT", {
+            issues: [{ field: "timezone", message: "The timezone and currency cannot change after slots or bookings exist." }],
+          });
         }
         return tx.venue.update({ where: { id: venueId }, data: definedFields(data) });
       });
@@ -51,7 +60,7 @@ export function createVenueAdminService(db: DatabaseClient, config: ServerConfig
         if (!await tx.venue.findUnique({ where: { id: venueId }, select: { id: true } })) throw new ApiError("NOT_FOUND");
         return tx.court.create({ data: { ...data, venueId } });
       });
-    } catch (error) { return translateWriteError(error); }
+    } catch (error) { return courtWriteError(error); }
   }
 
   async function updateCourt(venue: unknown, id: unknown, input: unknown) {
@@ -63,10 +72,12 @@ export function createVenueAdminService(db: DatabaseClient, config: ServerConfig
         if (!court) throw new ApiError("NOT_FOUND");
         // Changing the sport of an existing schedule would change what customers
         // reviewed without changing slot versions. Use a separate court instead.
-        if (data.sport && data.sport !== court.sport && await tx.slot.count({ where: { courtId } })) throw new ApiError("CONFLICT");
+        if (data.sport && data.sport !== court.sport && await tx.slot.count({ where: { courtId } })) throw new ApiError("CONFLICT", {
+          issues: [{ field: "sport", message: "The sport cannot change after slots exist. Add a separate court for the new sport." }],
+        });
         return tx.court.update({ where: { id: courtId }, data: definedFields(data) });
       });
-    } catch (error) { return translateWriteError(error); }
+    } catch (error) { return courtWriteError(error); }
   }
 
   async function generationContext(tx: TransactionClient, venueId: string, courtIds: string[]) {
@@ -146,9 +157,10 @@ export function createVenueAdminService(db: DatabaseClient, config: ServerConfig
         if (!changed) return { ...slot, startsAt: slot.startsAt.toISOString(), endsAt: slot.endsAt.toISOString() };
         if (await tx.bookingItem.count({ where: { slotId, status: "RESERVED" } })) throw new ApiError("SLOT_RESERVED");
         const now = await databaseNow(tx);
-        if (slot.startsAt <= now || startsAt <= now || endsAt <= startsAt || endsAt.getTime() - startsAt.getTime() > 26 * 3_600_000) {
-          throw new ApiError("VALIDATION_ERROR", { issues: [{ field: "startsAt", message: "Choose a valid future interval." }] });
-        }
+        if (slot.startsAt <= now) throw new ApiError("VALIDATION_ERROR", { issues: [{ field: "startsAt", message: "This slot has already started and can no longer be edited." }] });
+        if (startsAt <= now) throw new ApiError("VALIDATION_ERROR", { issues: [{ field: "startsAt", message: "Choose a future start time." }] });
+        if (endsAt <= startsAt) throw new ApiError("VALIDATION_ERROR", { issues: [{ field: "endsAt", message: "End must be after Start." }] });
+        if (endsAt.getTime() - startsAt.getTime() > 26 * 3_600_000) throw new ApiError("VALIDATION_ERROR", { issues: [{ field: "endsAt", message: "Choose an End no more than 26 hours after Start." }] });
         await generationContext(tx, venueId, [slot.courtId]);
         if (await tx.slot.count({ where: { id: { not: slotId }, courtId: slot.courtId, startsAt: { lt: endsAt }, endsAt: { gt: startsAt } } })) throw new ApiError("SLOT_OVERLAP");
         const updated = await tx.slot.update({ where: { id: slotId }, data: { startsAt, endsAt, priceMinor, isBlocked } });

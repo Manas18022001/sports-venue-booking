@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import { api, errorMessage } from "../client/api";
+import { api, ClientError, errorMessage } from "../client/api";
 import { Icon } from "./icon";
 
 export function Spinner({ label = "Loading" }: { label?: string }) {
@@ -130,8 +130,9 @@ export function useRequest<T>(path: string | null, auth = false) {
     path: string | null;
     data: T | null;
     error: string;
+    issues: Array<{ field: string; message: string }>;
     loading: boolean;
-  }>({ path: null, data: null, error: "", loading: false });
+  }>({ path: null, data: null, error: "", issues: [], loading: false });
   const reload = useCallback(() => setRevision((value) => value + 1), []);
   useEffect(() => {
     if (!path) return;
@@ -140,12 +141,13 @@ export function useRequest<T>(path: string | null, auth = false) {
       path,
       data: previous.path === path ? previous.data : null,
       error: "",
+      issues: [],
       loading: true,
     }));
     void api<T>(path, { auth, signal: controller.signal })
       .then((data) => {
         if (!controller.signal.aborted)
-          setState({ path, data, error: "", loading: false });
+          setState({ path, data, error: "", issues: [], loading: false });
       })
       .catch((error) => {
         if (!controller.signal.aborted)
@@ -153,6 +155,7 @@ export function useRequest<T>(path: string | null, auth = false) {
             ...previous,
             path,
             error: errorMessage(error),
+            issues: error instanceof ClientError ? error.issues : [],
             loading: false,
           }));
       });
@@ -162,6 +165,7 @@ export function useRequest<T>(path: string | null, auth = false) {
     data: state.path === path ? state.data : null,
     error: state.path === path ? state.error : "",
     loading: Boolean(path) && (state.path !== path || state.loading),
+    fieldError: (field: string) => state.path === path ? state.issues.find((issue) => issue.field.split(".")[0] === field)?.message : undefined,
     reload,
   };
 }

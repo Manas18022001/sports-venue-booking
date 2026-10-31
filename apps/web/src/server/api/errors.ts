@@ -20,7 +20,7 @@ const definitions = {
   PAYLOAD_TOO_LARGE: { status: 413, message: "The request body exceeds the allowed size." },
   URI_TOO_LONG: { status: 414, message: "The request URL exceeds the allowed size." },
   UNSUPPORTED_MEDIA_TYPE: { status: 415, message: "Use UTF-8 application/json without content encoding." },
-  VALIDATION_ERROR: { status: 422, message: "Check the highlighted fields." },
+  VALIDATION_ERROR: { status: 422, message: "Review the fields below and try again." },
   RATE_LIMITED: { status: 429, message: "Too many requests. Try again later." },
   INTERNAL_ERROR: { status: 500, message: "Something went wrong. Try again later." },
   SERVICE_UNAVAILABLE: { status: 503, message: "The service is temporarily unavailable." },

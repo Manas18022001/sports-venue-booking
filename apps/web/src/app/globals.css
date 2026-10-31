@@ -155,8 +155,11 @@ textarea:disabled,
 select:disabled {
   background: #f1f2ec;
 }
-input[aria-invalid="true"] {
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
   border-color: var(--red);
+  box-shadow: 0 0 0 1px var(--red);
 }
 :focus-visible {
   outline: 3px solid #98b94d;
@@ -1119,6 +1122,31 @@ input[aria-invalid="true"] {
   font-size: 11px;
   color: var(--red);
   font-weight: 500;
+}
+.form-error-summary {
+  scroll-margin-block: 20px;
+  min-width: 0;
+}
+.form-error-summary .notice {
+  margin-block: 0 16px;
+}
+.form-error-summary p {
+  margin: 0;
+}
+.form-error-summary ul {
+  margin: 8px 0 0;
+  padding-left: 17px;
+}
+.form-error-summary .inline-button {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+[aria-invalid="true"] {
+  scroll-margin-block: 80px;
+}
+.checkout-summary > form > .eyebrow {
+  color: var(--muted);
+  font-size: 8px;
 }
 .sport-field {
   display: grid;

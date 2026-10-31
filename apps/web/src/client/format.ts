@@ -1,3 +1,5 @@
+import { InputValueError } from "./form-errors";
+
 export function money(minor: number, currency = "INR") {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -7,13 +9,13 @@ export function money(minor: number, currency = "INR") {
 }
 export function priceMinor(value: string) {
   if (!/^\d+(?:\.\d{1,2})?$/.test(value))
-    throw new Error(
+    throw new InputValueError(
       "Enter a non-negative price with at most two decimal places.",
     );
   const [whole, fraction = ""] = value.split(".");
   const result = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
   if (!Number.isSafeInteger(result) || result > 2_147_483_647)
-    throw new Error("Enter a price below ₹21,474,836.48.");
+    throw new InputValueError("Enter a price below ₹21,474,836.48.");
   return result;
 }
 export function localDate(date = new Date(), timezone = "Asia/Kolkata") {
@@ -78,7 +80,7 @@ export async function toInstant(value: string, timezone: string) {
       .toInstant()
       .toString({ smallestUnit: "second" });
   } catch {
-    throw new Error(
+    throw new InputValueError(
       "This local time is invalid or occurs twice in the venue timezone. Choose a different time.",
     );
   }

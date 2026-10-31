@@ -202,6 +202,9 @@ export function VenueBrowser() {
             </label>
             <input
               id="city"
+              name="city"
+              aria-invalid={Boolean(request.fieldError("city"))}
+              aria-describedby={request.fieldError("city") ? "venue-city-error" : undefined}
               value={city}
               onChange={(event) => setCity(event.target.value)}
               placeholder="Search your city"
@@ -212,6 +215,7 @@ export function VenueBrowser() {
             </button>
           </form>
         </div>
+        {request.fieldError("city") && <p id="venue-city-error" className="field-error">{request.fieldError("city")}</p>}
         <div
           className="sports-filter"
           role="group"

@@ -8,7 +8,7 @@ const options = sports.slice(1);
 const sportIcon = (sport: string) =>
   ["Badminton", "Tennis", "Pickleball"].includes(sport) ? "racket" : "ball";
 
-export function SportCombobox({ defaultValue = "Badminton" }: { defaultValue?: string }) {
+export function SportCombobox({ defaultValue = "Badminton", error, errorId }: { defaultValue?: string; error?: string | undefined; errorId?: string }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
@@ -54,7 +54,8 @@ export function SportCombobox({ defaultValue = "Badminton" }: { defaultValue?: s
             aria-autocomplete="list"
             aria-expanded={open}
             aria-controls={`${id}-options`}
-            aria-describedby={`${id}-hint`}
+            aria-describedby={[`${id}-hint`, error ? errorId : undefined].filter(Boolean).join(" ")}
+            aria-invalid={Boolean(error)}
             aria-activedescendant={open && matches[active] ? `${id}-option-${active}` : undefined}
             autoComplete="off"
             required
@@ -134,6 +135,7 @@ export function SportCombobox({ defaultValue = "Badminton" }: { defaultValue?: s
         )}
       </div>
       <span id={`${id}-hint`} className="field-hint">Choose a sport or enter your own before scheduling slots.</span>
+      {error && <span id={errorId} className="field-error">{error}</span>}
     </div>
   );
 }

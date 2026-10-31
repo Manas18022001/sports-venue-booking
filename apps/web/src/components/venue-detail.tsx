@@ -152,6 +152,8 @@ export function VenueDetail({ id }: { id: string }) {
               <span className="sr-only">Choose date</span>
               <input
                 aria-label="Choose date"
+                aria-invalid={Boolean(availability.fieldError("date"))}
+                aria-describedby={availability.fieldError("date") ? "availability-date-error" : undefined}
                 type="date"
                 value={date}
                 min={localDate(new Date(), info.timezone)}
@@ -161,6 +163,7 @@ export function VenueDetail({ id }: { id: string }) {
               />
             </label>
           </div>
+          {availability.fieldError("date") && <p id="availability-date-error" className="field-error">{availability.fieldError("date")}</p>}
           <p className="small muted">
             Times shown in {info.timezone.replaceAll("_", " ")}. Select any
             combination of courts and dates.
@@ -197,6 +200,8 @@ export function VenueDetail({ id }: { id: string }) {
             <label htmlFor="court-filter">Court</label>
             <select
               id="court-filter"
+              aria-invalid={Boolean(availability.fieldError("courtId"))}
+              aria-describedby={availability.fieldError("courtId") ? "availability-court-error" : undefined}
               value={court}
               onChange={(event) => {
                 setCourt(event.target.value);
@@ -222,6 +227,8 @@ export function VenueDetail({ id }: { id: string }) {
               <Icon name="refresh" size={18} />
             </button>
           </div>
+          {availability.fieldError("courtId") && <p id="availability-court-error" className="field-error">{availability.fieldError("courtId")}</p>}
+          {courts.error && <Notice>{courts.error} <button type="button" className="inline-button" onClick={courts.reload}>Reload courts</button></Notice>}
           {availability.error && (
             <Notice>
               {availability.error}{" "}
