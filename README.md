@@ -47,6 +47,7 @@ npm ci
 npm run db:validate
 npm run db:generate
 npm run db:migrate:deploy
+npm run test:unit
 npm run typecheck
 npm run test:db
 npm run dev
@@ -85,7 +86,8 @@ allow the test account to create schemas and install `btree_gist` if absent.
 | `npm run db:migrate:dev -- --name change_name` | Draft a migration for review. |
 | `npm run db:migrate:deploy` | Apply checked-in migrations. |
 | `npm run db:migrate:status` | Inspect migration status. |
-| `npm run typecheck` | Check database code and integration tests. |
+| `npm run typecheck` | Check application, configuration, and test TypeScript. |
+| `npm run test:unit` | Check server configuration without connecting to PostgreSQL. |
 | `npm run test:db` | Exercise constraints and races using real PostgreSQL connections. |
 
 Inspect each generated migration and preserve the SQL constraints and triggers.
@@ -97,7 +99,11 @@ Start with [the model guide](docs/data-model.md), then
 [`schema.prisma`](apps/web/prisma/schema.prisma), followed by the SQL migrations.
 Database tests live in `apps/web/test/database`.
 
-Validated server configuration and shared API infrastructure are the next two
-separate checkpoints. Authentication, booking services, and the product UI follow
-those. The database layer alone does not implement authentication or the
-12-hour cancellation policy.
+Server configuration is validated at Node.js startup. See
+[server configuration](docs/server-configuration.md) for the environment variables,
+defaults, startup behavior, and code walkthrough. Database pool size and timeouts
+are configurable; omitted optional settings retain their previous defaults.
+
+Shared API infrastructure is the next checkpoint. Authentication, booking
+services, and the product UI follow. The database layer alone does not implement
+authentication or the 12-hour cancellation policy.

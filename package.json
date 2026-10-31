@@ -21,6 +21,7 @@
     "db:migrate:deploy": "npm run db:migrate:deploy --workspace @turfit/web",
     "db:migrate:status": "npm run db:migrate:status --workspace @turfit/web",
     "typecheck": "npm run typecheck --workspace @turfit/web",
+    "test:unit": "npm run test:unit --workspace @turfit/web",
     "test:db": "npm run test:db --workspace @turfit/web"
   },
   "allowScripts": {

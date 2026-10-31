@@ -1,6 +1,7 @@
 import "server-only";
 import { createDatabaseClient } from "../database/client";
 import type { DatabaseClient } from "../database/client";
+import { getServerConfig } from "./config";
 
 const processDatabase = globalThis as typeof globalThis & {
   turfitDatabase?: DatabaseClient;
@@ -9,11 +10,9 @@ const processDatabase = globalThis as typeof globalThis & {
 // One client/pool per process, including development hot reloads. Creation is
 // lazy: importing this module does not connect to PostgreSQL or query it.
 export function getDatabase(): DatabaseClient {
+  const { database } = getServerConfig();
   if (processDatabase.turfitDatabase) return processDatabase.turfitDatabase;
 
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error("DATABASE_URL is required for database access.");
-
-  processDatabase.turfitDatabase = createDatabaseClient(connectionString);
+  processDatabase.turfitDatabase = createDatabaseClient(database.connectionString, database.pool);
   return processDatabase.turfitDatabase;
 }
