@@ -24,7 +24,8 @@
     "test:unit": "npm run test:unit --workspace @turfit/web",
     "test:db": "npm run test:db --workspace @turfit/web",
     "auth:create-admin": "npm run auth:create-admin --workspace @turfit/web",
-    "db:seed": "npm run db:seed --workspace @turfit/web"
+    "db:seed": "npm run db:seed --workspace @turfit/web",
+    "db:configure-local": "node scripts/configure-local-db.mjs"
   },
   "allowScripts": {
     "prisma@7.10.1": true,

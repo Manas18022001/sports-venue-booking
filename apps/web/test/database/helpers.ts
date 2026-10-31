@@ -9,9 +9,16 @@ import pg from "pg";
 config({ path: resolve(import.meta.dirname, "../../../../.env"), quiet: true });
 
 const connectionString = process.env.TEST_DATABASE_URL;
-if (!connectionString) throw new Error("Set TEST_DATABASE_URL to a dedicated PostgreSQL test database.");
-if (!decodeURIComponent(new URL(connectionString).pathname).toLowerCase().includes("test")) {
-  throw new Error("TEST_DATABASE_URL must name a dedicated database containing 'test'.");
+if (!connectionString) throw new Error("Set TEST_DATABASE_URL; local tests use isolated schemas in the application's database.");
+const targetUrl = new URL(connectionString);
+const applicationUrl = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL) : null;
+const usesLocalApplicationDatabase = applicationUrl
+  && ["localhost", "127.0.0.1", "[::1]"].includes(targetUrl.hostname)
+  && ["localhost", "127.0.0.1", "[::1]"].includes(applicationUrl.hostname)
+  && (targetUrl.port || "5432") === (applicationUrl.port || "5432")
+  && decodeURIComponent(targetUrl.pathname) === decodeURIComponent(applicationUrl.pathname);
+if (!decodeURIComponent(targetUrl.pathname).toLowerCase().includes("test") && !usesLocalApplicationDatabase) {
+  throw new Error("Tests must use the same local application database with isolated schemas, or a dedicated remote database containing 'test' in its name.");
 }
 
 export const testDatabaseUrl = connectionString;

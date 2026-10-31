@@ -39,7 +39,7 @@ client after individual HTTP requests.
 
 - Node.js 24.11+ on the 24.x line and npm 11+.
 - PostgreSQL 18 with the `btree_gist` extension available.
-- Separate development and test databases. Migration credentials need permission
+- One local development database; tests use isolated temporary schemas. Migration credentials need permission
   to install `btree_gist`; the future runtime account should have narrower privileges.
 
 Prisma is pinned to **7.10.1**. At implementation time Prisma 8's `latest` tag is
@@ -49,7 +49,7 @@ a release candidate with a different migration API; do not upgrade it implicitly
 
 1. Copy `.env.example` to `.env`, replace the connection strings, and set a random
    32-byte hexadecimal `AUTH_SECRET` (see [authentication setup](docs/authentication.md)).
-2. Create the `turfit` and `turfit_test` databases using your PostgreSQL installation.
+2. Create the `turfit` database, or follow [the Docker database setup](docs/local-database.md).
 3. From the repository root, run:
 
 ```sh
@@ -78,10 +78,11 @@ The build generates the Prisma client before compiling Next.js. It does not
 apply migrations; deploy migrations as a separate release step before serving
 application code that depends on them.
 
-`TEST_DATABASE_URL` must point to a dedicated database whose name contains
-`test`. Tests create a uniquely named schema and remove only that schema after
-completion; they do not truncate existing application tables. PostgreSQL must
-allow the test account to create schemas and install `btree_gist` if absent.
+For local development, `TEST_DATABASE_URL` points to the same `turfit` database
+as `DATABASE_URL`. Tests create a uniquely named schema and remove only that
+schema after completion; they do not truncate application tables in `public`.
+A remote test target must still be a dedicated database containing `test` in its
+name. PostgreSQL must allow creating schemas and installing `btree_gist` if absent.
 
 ## Commands
 
@@ -94,6 +95,7 @@ allow the test account to create schemas and install `btree_gist` if absent.
 | `npm run db:validate` | Validate the Prisma schema. |
 | `npm run db:generate` | Generate the ignored, typed database client. |
 | `npm run db:seed` | Optionally add fictional demo venues and seven days of development slots; never creates accounts. |
+| `npm run db:configure-local` | Generate local Docker credentials and point app/tests to one database in the ignored `.env`. |
 | `npm run db:migrate:dev -- --name change_name` | Draft a migration for review. |
 | `npm run db:migrate:deploy` | Apply checked-in migrations. |
 | `npm run db:migrate:status` | Inspect migration status. |
